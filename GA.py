@@ -1,5 +1,10 @@
 from collections.abc import Callable
 
+class Chromosome:
+    def __init__(self, chromosome: str, type):
+        pass
+
+    
 class GA:
     def __init__(self,
                  fitness_function: Callable,
