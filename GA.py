@@ -1,4 +1,5 @@
 from collections.abc import Callable
+from selectionMethods import rankSelection, TorunementSelection
 
 class Chromosome:
     def __init__(self, chromosome: str, type):
@@ -38,8 +39,13 @@ class GA:
     def check_feasibility(self, chromosome):
         ...
 
-    def select(self):
-        ...
+    def select(self, population: list):
+        fitnessScores = evaluate_fitness(population)
+        matingPool = []
+        for i in range(self.population_size): # mating pool is the same as the population size 
+            selectedChrom = self.selection_method(population,fitnessScores)
+            matingPool.append(selectedChrom)
+        return matingPool
 
     def crossover(self, p1, p2):
         ...
