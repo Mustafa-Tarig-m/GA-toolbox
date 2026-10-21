@@ -32,7 +32,7 @@ class GA:
     def init_population(self) -> list:
         ...
 
-    def evaluate_fitness(self, chromosome):
+    def evaluate_fitness(self, population: list) -> dict:
         ...
 
     def check_feasibility(self, chromosome):
