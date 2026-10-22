@@ -100,7 +100,7 @@ class GA:
     def evaluate_fitness(self, population: list[Chromosome]) -> list[Chromosome]:
         ...
 
-    def check_feasibility(self, chromosome):
+    def check_feasibility(self, chromosomes: list[Chromosome]):
         ...
 
     def select(self, population: list[Chromosome]) -> list[Chromosome]:
@@ -114,10 +114,14 @@ class GA:
     def crossover(self, parents) -> list[Chromosome]:
         ...
 
-    def mutate(self, offspring_candidates):
+    def mutate(self, offspring_candidates) -> list[Chromosome]:
         ...
 
-    def replacement(self, mutated_offsprings: list[Chromosome]):
+    def replacement(
+        self,
+        population: list[Chromosome],
+        offspring: list[Chromosome]
+    ) -> list[Chromosome]:
         ...
 
     def run(self):
