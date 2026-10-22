@@ -6,6 +6,7 @@ class Chromosome:
     def __init__(self, genes:list | None = None):
         self.genes = genes
         self.fitness: float | None = None
+        self.feasible: bool | None = None
 
     def get_genes(self) -> np.ndarray:
         if self.genes is None:
@@ -96,7 +97,7 @@ class GA:
             population.append(chromosome)
         return population
 
-    def evaluate_fitness(self, population: list[Chromosome]) -> dict:
+    def evaluate_fitness(self, population: list[Chromosome]) -> list[Chromosome]:
         ...
 
     def check_feasibility(self, chromosome):
@@ -110,14 +111,23 @@ class GA:
             matingPool.append(selectedChrom)
         return matingPool
 
-    def crossover(self, p1, p2):
+    def crossover(self, parents) -> list[Chromosome]:
         ...
 
-    def mutate(self, chromosome):
+    def mutate(self, offspring_candidates):
         ...
 
-    def replacement(self):
+    def replacement(self, mutated_offsprings: list[Chromosome]):
         ...
 
     def run(self):
-        ...
+        population = self.init_population()
+        for _ in range(self.generations):
+            evaluated_population = self.evaluate_fitness(population)
+            parents = self.select(evaluated_population)
+            offspring_candidates = self.crossover(parents)
+            mutated_offsprings = self.mutate(offspring_candidates)
+            population = self.replacement(mutated_offsprings)
+
+
+
