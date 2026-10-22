@@ -60,6 +60,13 @@ class GA:
         self.mutation_method = mutation_method
         self.replacement_method = replacement_method
 
+    def configure(self, **kwargs):
+        for key, value in kwargs.items():
+            if hasattr(self, key):
+                setattr(self, key, value)
+            else:
+                raise AttributeError(f"GA class has no attribute '{key}'")
+
     def init_population(self) -> list:
         ...
 
