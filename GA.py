@@ -19,14 +19,22 @@ class BinaryChromosome(Chromosome):
     def get_genes(self): return np.array(self.genes, dtype=np.uint8)
 
 class IntegerChromosome(Chromosome):
+    def __init__(self, genes: list):
+        if not all(isinstance(g, int) for g in genes):
+            raise ValueError(
+                "IntegerChromosome genes must strictly contain only integers."
+            )
+        super().__init__(genes)
     def get_genes(self): return np.array(self.genes, dtype=np.int64)
 
 class FloatChromosome(Chromosome):
+    def __init__(self, genes: list):
+        if not all(isinstance(g, float) for g in genes):
+            raise ValueError(
+                "FloatChromosome genes must strictly contain only floats."
+            )
+        super().__init__(genes)
     def get_genes(self): return np.array(self.genes, dtype=np.float64)
-
-
-        
-
     
 class GA:
     def __init__(self,
@@ -62,7 +70,7 @@ class GA:
         ...
 
     def select(self, population: list):
-        fitnessScores = evaluate_fitness(population)
+        fitnessScores = self.evaluate_fitness(population)
         matingPool = []
         for i in range(self.population_size): # mating pool is the same as the population size 
             selectedChrom = self.selection_method(population,fitnessScores)
