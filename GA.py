@@ -1,9 +1,31 @@
 from collections.abc import Callable
 from selectionMethods import rankSelection, TorunementSelection
+import numpy as np
 
 class Chromosome:
-    def __init__(self, chromosome: str, type):
-        pass
+    def __init__(self, genes: list):
+        self.genes: list = genes
+        self.fitness: float | None = None
+    def get_genes(self) -> np.ndarray:
+        ...
+
+class BinaryChromosome(Chromosome):
+    def __init__(self, genes: list):
+        if not all(g in (0, 1, True, False) for g in genes):
+            raise ValueError(
+                "BinaryChromosome genes must strictly contain only 0s and 1s."
+)
+        super().__init__(genes)
+    def get_genes(self): return np.array(self.genes, dtype=np.uint8)
+
+class IntegerChromosome(Chromosome):
+    def get_genes(self): return np.array(self.genes, dtype=np.int64)
+
+class FloatChromosome(Chromosome):
+    def get_genes(self): return np.array(self.genes, dtype=np.float64)
+
+
+        
 
     
 class GA:
