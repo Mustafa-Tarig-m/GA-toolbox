@@ -1,5 +1,6 @@
 from collections.abc import Callable
 from selectionMethods import rankSelection, TorunementSelection
+from crossoverMethods import multi_point_crossover, order_crossover
 import numpy as np
 
 class Chromosome:

@@ -80,12 +80,7 @@ def multi_point_crossover(
 
 
 def order_crossover(parents: Sequence, crossover_rate: float = 1.0) -> list:
-    """Apply order crossover (OX) to adjacent pairs of permutation chromosomes.
-
-    OX copies a randomly selected segment from each parent and fills the
-    remaining positions in the order encountered in the other parent. Parent
-    genes must be permutations of the same unique values.
-    """
+    """Apply order crossover to adjacent pairs of permutation chromosomes."""
     if not 0.0 <= crossover_rate <= 1.0:
         raise ValueError("crossover_rate must be between 0 and 1.")
     offspring = []
