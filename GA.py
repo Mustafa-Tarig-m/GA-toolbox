@@ -1,6 +1,6 @@
 from collections.abc import Callable
 from selectionMethods import rankSelection, TorunementSelection
-from mutationMethods import *
+import mutationMethods
 import numpy as np
 
 class Chromosome:
