@@ -1,5 +1,6 @@
 from collections.abc import Callable
 from selectionMethods import rankSelection, TorunementSelection
+from mutationMethods import *
 import numpy as np
 
 class Chromosome:
@@ -115,8 +116,18 @@ class GA:
     def crossover(self, parents) -> list[Chromosome]:
         ...
 
-    def mutate(self, offspring_candidates) -> list[Chromosome]:
-        ...
+    def mutate(self, offspring_candidates, current_generation) -> list[Chromosome]:
+        mutated_offspring = []
+        for offspring in offspring_candidates:
+            mutated_chromosome = offspring.get_genes()
+            if self.gene_type == BinaryChromosome:
+                mutated_chromosome = flip_bit(self.mutation_rate, mutated_chromosome)
+            elif self.gene_type == IntegerChromosome:
+                mutated_chromosome = uniform_mutation(self.mutation_rate, mutated_chromosome, ubound=offspring.max_val, lbound=offspring.min_val)
+            elif self.gene_type == FloatChromosome:
+                mutated_chromosome = non_uniform_mutation(self.mutation_rate, mutated_chromosome, ubound=offspring.max_val, lbound=offspring.min_val, current_generation=current_generation, max_generations=self.generations)
+            mutated_offspring.append(mutated_chromosome)
+        return mutated_offspring
 
     def replacement(
         self,
@@ -131,7 +142,7 @@ class GA:
             evaluated_population = self.evaluate_fitness(population)
             parents = self.select(evaluated_population)
             offspring_candidates = self.crossover(parents)
-            mutated_offsprings = self.mutate(offspring_candidates)
+            mutated_offsprings = self.mutate(offspring_candidates, generation)
             population = self.replacement(mutated_offsprings)
 
 
