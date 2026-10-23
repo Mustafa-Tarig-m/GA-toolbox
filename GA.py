@@ -3,8 +3,8 @@ from selectionMethods import rankSelection, TorunementSelection
 import numpy as np
 
 class Chromosome:
-    def __init__(self, genes:list | None = None):
-        self.genes = genes
+    def __init__(self):
+        self.genes = None
         self.fitness: float | None = None
         self.feasible: bool | None = None
 
@@ -13,38 +13,39 @@ class Chromosome:
             raise ValueError("Chromosome genes are not initialized.")
         return np.array(self.genes, dtype=np.uint8)
 
-    def set_genes(self, genes: list):
-        self.genes = genes
-
 class BinaryChromosome(Chromosome):
     def __init__(self, genes: list):
+        super().__init__()
+        genes = [int(g) for g in genes]
         if not all(g in (0, 1, True, False) for g in genes):
             raise ValueError(
                 "BinaryChromosome genes must strictly contain only 0s and 1s."
 )
-        super().__init__(genes)
+        self.genes = genes
     def get_genes(self):
         super().get_genes() 
         return np.array(self.genes, dtype=np.uint8)
 
 class IntegerChromosome(Chromosome):
-    def __init__(self, genes: list):
-        if not all(isinstance(g, int) for g in genes):
+    def __init__(self, min_val: int = 0, max_val: int = 100):
+        self.genes = np.random.randint(min_val, max_val, size=10).tolist()
+        super().__init__(self.genes)
+        if not all(isinstance(g, int) for g in self.genes):
             raise ValueError(
                 "IntegerChromosome genes must strictly contain only integers."
             )
-        super().__init__(genes)
     def get_genes(self): 
         super().get_genes()
         return np.array(self.genes, dtype=np.int64)
 
 class FloatChromosome(Chromosome):
-    def __init__(self, genes: list):
-        if not all(isinstance(g, float) for g in genes):
+    def __init__(self, min_val: float = 0.0, max_val: float = 1.0):
+        self.genes = np.random.uniform(min_val, max_val, size=10).tolist()
+        if not all(isinstance(g, float) for g in self.genes):
             raise ValueError(
                 "FloatChromosome genes must strictly contain only floats."
             )
-        super().__init__(genes)
+        super().__init__(self.genes)
     def get_genes(self): 
         super().get_genes()
         return np.array(self.genes, dtype=np.float64)
@@ -126,7 +127,7 @@ class GA:
 
     def run(self):
         population = self.init_population()
-        for _ in range(self.generations):
+        for generation in range(self.generations):
             evaluated_population = self.evaluate_fitness(population)
             parents = self.select(evaluated_population)
             offspring_candidates = self.crossover(parents)
