@@ -20,7 +20,7 @@ class BinaryChromosome(Chromosome):
         if not all(g in (0, 1, True, False) for g in genes):
             raise ValueError(
                 "BinaryChromosome genes must strictly contain only 0s and 1s."
-)
+            )
         self.genes = genes
     def get_genes(self):
         super().get_genes() 
