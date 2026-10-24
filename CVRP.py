@@ -2,23 +2,25 @@
 """Capacitated vehicle routing problem (CVRP) model for the GA toolbox."""
 
 from dataclasses import dataclass
-import math
-import random
 from collections.abc import Sequence
-
-import numpy as np
 from GA import Chromosome
 
+import math
+import random
+import numpy as np
+
+from GA import GA
+from replacementMethods import elitist_replacement
 
 Point = tuple[float, float]
 
 
-@dataclass(frozen=True)
+@dataclass
 class CVRPInstance:
-    """A validated CVRP instance.
+    """ CVRP
 
-    City ``0`` is the depot.  Vehicles start and finish at the depot, and all
-    other cities must be visited while respecting vehicle capacity.
+    City ``0`` is the depot.
+    Vehicles start and finish at the depot.
     """
 
     vehicle_count: int
@@ -66,26 +68,22 @@ class CVRPInstance:
                 )
 
 
-@dataclass(frozen=True)
+@dataclass
 class VehicleRoute:
-    """The reported result for one vehicle route."""
-
     cities: tuple[int, ...]
     load: int
     distance: float
 
 
 class CVRPChromosome(Chromosome):
-    """A chromosome containing depot-delimited city indexes."""
 
     def __init__(self, genes: Sequence[int]):
         super().__init__()
         self.genes = [int(gene) for gene in genes]
 
     def get_genes(self) -> np.ndarray:
-        """Return city indexes without truncating them to unsigned bytes."""
         if self.genes is None:
-            raise ValueError("Chromosome genes are not initialized.")
+            raise ValueError("chromosome genes are not initialized.")
         return np.array(self.genes, dtype=np.int64)
 
 
@@ -149,7 +147,7 @@ class CVRPProblem:
         )
 
     def total_distance(self, chromosome: CVRPChromosome | Sequence[int]) -> float:
-        """Return total Manhattan distance for a feasible chromosome."""
+        #uses the Manhattan distance to calculate the total distance 
         genes = chromosome.genes if isinstance(chromosome, Chromosome) else chromosome
         if not self.validate_chromosome(genes):
             raise ValueError("The chromosome is not a feasible CVRP solution.")
@@ -159,14 +157,14 @@ class CVRPProblem:
         )
 
     def fitness(self, chromosome: CVRPChromosome) -> float:
-        """Return fitness for a maximizing GA: shorter routes score higher."""
+    
         return -self.total_distance(chromosome)
 
     def feasibility(self, chromosome: CVRPChromosome) -> bool:
         return self.validate_chromosome(chromosome)
 
     def random_chromosome(self) -> CVRPChromosome:
-        """Build a feasible chromosome by assigning shuffled customers."""
+    
         customers = list(range(1, self.instance.city_count))
         random.shuffle(customers)
         routes: list[list[int]] = [[] for _ in range(self.instance.vehicle_count)]
@@ -192,8 +190,95 @@ class CVRPProblem:
             genes.append(0)
         return CVRPChromosome(genes)
 
+    def crossover(
+        self,
+        parents: list[CVRPChromosome],
+        crossover_rate: float,
+    ) -> list[CVRPChromosome]:
+        offspring: list[CVRPChromosome] = []
+        for first, second in zip(parents[::2], parents[1::2]):
+            first_routes = self.routes_from_genes(first.genes)
+            second_routes = self.routes_from_genes(second.genes)
+            first_customers = [
+                city for route in first_routes for city in route if city != 0
+            ]
+            second_customers = [
+                city for route in second_routes for city in route if city != 0
+            ]
+
+            if random.random() >= crossover_rate:
+                children = [first, second]
+            elif len(first_customers) < 2:
+                children = [first, second]
+            else:
+                start, end = sorted(
+                    random.sample(range(len(first_customers)), 2)
+                )
+
+                def order_child(segment, fill):
+                    child = [None] * len(segment)
+                    child[start:end] = segment[start:end]
+                    remaining = [
+                        city for city in fill if city not in child[start:end]
+                    ]
+                    positions = list(range(end, len(child))) + list(range(start))
+                    for position, city in zip(positions, remaining):
+                        child[position] = city
+                    return child
+
+                child_customers = [
+                    order_child(first_customers, second_customers),
+                    order_child(second_customers, first_customers),
+                ]
+                route_lengths = [
+                    [len(route) - 2 for route in first_routes],
+                    [len(route) - 2 for route in second_routes],
+                ]
+                children = []
+                for customers, lengths, fallback in zip(
+                    child_customers, route_lengths, [first, second]
+                ):
+                    genes = [0]
+                    offset = 0
+                    for length in lengths:
+                        genes.extend(customers[offset:offset + length])
+                        genes.append(0)
+                        offset += length
+                    child = CVRPChromosome(genes)
+                    children.append(child if self.validate_chromosome(child) else fallback)
+
+            offspring.extend(children)
+        return offspring
+
+    def mutate(
+        self,
+        chromosome: CVRPChromosome,
+        mutation_rate: float,
+        _generation: int,
+        _generations: int,
+    ) -> CVRPChromosome:
+        if random.random() >= mutation_rate:
+            return chromosome
+        routes = [list(route) for route in self.routes_from_genes(chromosome.genes)]
+        customer_positions = [
+            (route_index, city_index)
+            for route_index, route in enumerate(routes)
+            for city_index in range(1, len(route) - 1)
+        ]
+        if len(customer_positions) < 2:
+            return chromosome
+        first_position, second_position = random.sample(customer_positions, 2)
+        first_route, first_index = first_position
+        second_route, second_index = second_position
+        routes[first_route][first_index], routes[second_route][second_index] = (
+            routes[second_route][second_index],
+            routes[first_route][first_index],
+        )
+        genes = [city for route in routes for city in route]
+        candidate = CVRPChromosome(genes)
+        return candidate if self.validate_chromosome(candidate) else chromosome
+
     def report(self, chromosome: CVRPChromosome) -> tuple[VehicleRoute, ...]:
-        """Return every vehicle's route, load, and Manhattan distance."""
         if not self.validate_chromosome(chromosome):
             raise ValueError("Cannot report an infeasible CVRP chromosome.")
         return tuple(
@@ -207,16 +292,19 @@ class CVRPProblem:
 
 
 def print_solution(problem: CVRPProblem, chromosome: CVRPChromosome) -> None:
-    """Print all routes, loads, and distances."""
-    for vehicle, route in enumerate(problem.report(chromosome), start=1):
-        print(
-            f"Vehicle {vehicle}: {' -> '.join(map(str, route.cities))} | "
-            f"load={route.load} | distance={route.distance:g}"
-        )
-    print(f"Total distance: {problem.total_distance(chromosome):g}")
+    routes = problem.report(chromosome)
 
+    for i, route in enumerate(routes, 1):
+        cities = " -> ".join(str(city) for city in route.cities)
 
-def _read_integer(prompt: str, minimum: int = 0) -> int:
+        print(f"Vehicle {i}: {cities}")
+        print(f"  Load: {route.load}")
+        print(f"  Distance: {route.distance}")
+
+    total = problem.total_distance(chromosome)
+    print(f"\nTotal distance: {total}")
+
+def read_integer(prompt: str, minimum: int = 0) -> int:
     while True:
         try:
             value = int(input(prompt))
@@ -229,7 +317,7 @@ def _read_integer(prompt: str, minimum: int = 0) -> int:
         return value
 
 
-def _read_demands(city_count: int) -> tuple[int, ...]:
+def read_demands(city_count: int) -> tuple[int, ...]:
     while True:
         try:
             demands = tuple(int(value) for value in input(
@@ -244,7 +332,7 @@ def _read_demands(city_count: int) -> tuple[int, ...]:
         return demands
 
 
-def _read_locations(city_count: int) -> tuple[Point, ...]:
+def read_locations(city_count: int) -> tuple[Point, ...]:
     print("Enter one x y pair for each city, separated by spaces.")
     print("City 0 is the depot and must be entered as: 0 0")
     while True:
@@ -268,13 +356,12 @@ def _read_locations(city_count: int) -> tuple[Point, ...]:
 
 
 def read_cvrp_instance() -> CVRPInstance:
-    """Read and validate a CVRP instance from standard input."""
-    vehicle_count = _read_integer("Number of vehicles: ", minimum=1)
-    vehicle_capacity = _read_integer("Vehicle capacity: ", minimum=1)
-    city_count = _read_integer("Number of cities: ", minimum=2)
+    vehicle_count = read_integer("Number of vehicles: ", minimum=1)
+    vehicle_capacity = read_integer("Vehicle capacity: ", minimum=1)
+    city_count = read_integer("Number of cities: ", minimum=2)
     while True:
-        demands = _read_demands(city_count)
-        locations = _read_locations(city_count)
+        demands = read_demands(city_count)
+        locations = read_locations(city_count)
         try:
             return CVRPInstance(
                 vehicle_count=vehicle_count,
@@ -289,7 +376,20 @@ def read_cvrp_instance() -> CVRPInstance:
 
 def main() -> None:
     problem = CVRPProblem(read_cvrp_instance())
-    chromosome = problem.random_chromosome()
+    genetic_algorithm = GA(
+        gene_type=CVRPChromosome,
+        fitness_function=problem.fitness,
+        feasibility_function=problem.feasibility,
+        population_size=100,
+        generations=200,
+        mutation_rate=0.15,
+        crossover_rate=0.9,
+        initializer=problem.random_chromosome,
+        crossover_method=problem.crossover,
+        mutation_method=problem.mutate,
+        replacement_method=elitist_replacement,
+    )
+    chromosome = genetic_algorithm.run()
     print_solution(problem, chromosome)
 
 
