@@ -2,23 +2,23 @@
 """Capacitated vehicle routing problem (CVRP) model for the GA toolbox."""
 
 from dataclasses import dataclass
+from collections.abc import Sequence
+from GA import Chromosome
+
 import math
 import random
-from collections.abc import Sequence
-
 import numpy as np
-from GA import Chromosome
 
 
 Point = tuple[float, float]
 
 
-@dataclass(frozen=True)
+@dataclass
 class CVRPInstance:
-    """A validated CVRP instance.
+    """ CVRP
 
-    City ``0`` is the depot.  Vehicles start and finish at the depot, and all
-    other cities must be visited while respecting vehicle capacity.
+    City ``0`` is the depot.
+    Vehicles start and finish at the depot.
     """
 
     vehicle_count: int
@@ -66,26 +66,22 @@ class CVRPInstance:
                 )
 
 
-@dataclass(frozen=True)
+@dataclass
 class VehicleRoute:
-    """The reported result for one vehicle route."""
-
     cities: tuple[int, ...]
     load: int
     distance: float
 
 
 class CVRPChromosome(Chromosome):
-    """A chromosome containing depot-delimited city indexes."""
 
     def __init__(self, genes: Sequence[int]):
         super().__init__()
         self.genes = [int(gene) for gene in genes]
 
     def get_genes(self) -> np.ndarray:
-        """Return city indexes without truncating them to unsigned bytes."""
         if self.genes is None:
-            raise ValueError("Chromosome genes are not initialized.")
+            raise ValueError("chromosome genes are not initialized.")
         return np.array(self.genes, dtype=np.int64)
 
 
@@ -149,7 +145,7 @@ class CVRPProblem:
         )
 
     def total_distance(self, chromosome: CVRPChromosome | Sequence[int]) -> float:
-        """Return total Manhattan distance for a feasible chromosome."""
+        #uses the Manhattan distance to calculate the total distance 
         genes = chromosome.genes if isinstance(chromosome, Chromosome) else chromosome
         if not self.validate_chromosome(genes):
             raise ValueError("The chromosome is not a feasible CVRP solution.")
@@ -159,14 +155,14 @@ class CVRPProblem:
         )
 
     def fitness(self, chromosome: CVRPChromosome) -> float:
-        """Return fitness for a maximizing GA: shorter routes score higher."""
+    
         return -self.total_distance(chromosome)
 
     def feasibility(self, chromosome: CVRPChromosome) -> bool:
         return self.validate_chromosome(chromosome)
 
     def random_chromosome(self) -> CVRPChromosome:
-        """Build a feasible chromosome by assigning shuffled customers."""
+    
         customers = list(range(1, self.instance.city_count))
         random.shuffle(customers)
         routes: list[list[int]] = [[] for _ in range(self.instance.vehicle_count)]
@@ -193,7 +189,6 @@ class CVRPProblem:
         return CVRPChromosome(genes)
 
     def report(self, chromosome: CVRPChromosome) -> tuple[VehicleRoute, ...]:
-        """Return every vehicle's route, load, and Manhattan distance."""
         if not self.validate_chromosome(chromosome):
             raise ValueError("Cannot report an infeasible CVRP chromosome.")
         return tuple(
@@ -207,16 +202,19 @@ class CVRPProblem:
 
 
 def print_solution(problem: CVRPProblem, chromosome: CVRPChromosome) -> None:
-    """Print all routes, loads, and distances."""
-    for vehicle, route in enumerate(problem.report(chromosome), start=1):
-        print(
-            f"Vehicle {vehicle}: {' -> '.join(map(str, route.cities))} | "
-            f"load={route.load} | distance={route.distance:g}"
-        )
-    print(f"Total distance: {problem.total_distance(chromosome):g}")
+    routes = problem.report(chromosome)
 
+    for i, route in enumerate(routes, 1):
+        cities = " -> ".join(str(city) for city in route.cities)
 
-def _read_integer(prompt: str, minimum: int = 0) -> int:
+        print(f"Vehicle {i}: {cities}")
+        print(f"  Load: {route.load}")
+        print(f"  Distance: {route.distance}")
+
+    total = problem.total_distance(chromosome)
+    print(f"\nTotal distance: {total}")
+
+def read_integer(prompt: str, minimum: int = 0) -> int:
     while True:
         try:
             value = int(input(prompt))
@@ -229,7 +227,7 @@ def _read_integer(prompt: str, minimum: int = 0) -> int:
         return value
 
 
-def _read_demands(city_count: int) -> tuple[int, ...]:
+def read_demands(city_count: int) -> tuple[int, ...]:
     while True:
         try:
             demands = tuple(int(value) for value in input(
@@ -244,7 +242,7 @@ def _read_demands(city_count: int) -> tuple[int, ...]:
         return demands
 
 
-def _read_locations(city_count: int) -> tuple[Point, ...]:
+def read_locations(city_count: int) -> tuple[Point, ...]:
     print("Enter one x y pair for each city, separated by spaces.")
     print("City 0 is the depot and must be entered as: 0 0")
     while True:
@@ -268,13 +266,12 @@ def _read_locations(city_count: int) -> tuple[Point, ...]:
 
 
 def read_cvrp_instance() -> CVRPInstance:
-    """Read and validate a CVRP instance from standard input."""
-    vehicle_count = _read_integer("Number of vehicles: ", minimum=1)
-    vehicle_capacity = _read_integer("Vehicle capacity: ", minimum=1)
-    city_count = _read_integer("Number of cities: ", minimum=2)
+    vehicle_count = read_integer("Number of vehicles: ", minimum=1)
+    vehicle_capacity = read_integer("Vehicle capacity: ", minimum=1)
+    city_count = read_integer("Number of cities: ", minimum=2)
     while True:
-        demands = _read_demands(city_count)
-        locations = _read_locations(city_count)
+        demands = read_demands(city_count)
+        locations = read_locations(city_count)
         try:
             return CVRPInstance(
                 vehicle_count=vehicle_count,
@@ -288,8 +285,8 @@ def read_cvrp_instance() -> CVRPInstance:
 
 
 def main() -> None:
-    problem = CVRPProblem(read_cvrp_instance())
-    chromosome = problem.random_chromosome()
+    problem = CVRPProblem(read_cvrp_instance())#read the input from the user and create a CVRPProblem instance
+    chromosome = problem.random_chromosome()#generate a random feasible chromosome for the CVRP instance
     print_solution(problem, chromosome)
 
 
