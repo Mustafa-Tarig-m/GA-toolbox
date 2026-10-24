@@ -4,14 +4,12 @@ from collections.abc import Sequence
 
 
 def to_gene_list(chromosome) -> list:
-    """Return a chromosome's genes without changing the source chromosome."""
     if not hasattr(chromosome, "genes") or chromosome.genes is None:
         raise ValueError("Each parent must have initialized genes.")
     return list(chromosome.genes)
 
 
 def make_child(parent, genes):
-    """Create a child while retaining the parent's chromosome subclass."""
     child = copy(parent)
     child.genes = list(genes)
     child.fitness = None
@@ -34,9 +32,9 @@ def multi_point_crossover(
 ) -> list:
     """Apply multi-point crossover to adjacent pairs of chromosomes.
 
-    Each pair produces two children. ``num_points`` distinct cut positions are
-    selected between genes, and segments alternate between the two parents.
-    The operator works with binary, integer, and floating-point chromosomes.
+    two parents produce two children ... num_points  cut positions are
+    selected between genes.
+    
     When crossover is skipped, copies of the two parents are returned.
     """
     if not 0.0 <= crossover_rate <= 1.0:
@@ -49,11 +47,7 @@ def multi_point_crossover(
         if len(first_genes) != len(second_genes):
             raise ValueError("Parents must have the same number of genes.")
         length = len(first_genes)
-        if num_points < 1 or num_points >= length:
-            raise ValueError(
-                "num_points must be at least 1 and smaller than the chromosome length."
-            )
-
+        # num_points must be at least 1 and smaller than the chromosome length.
         if random.random() >= crossover_rate:
             offspring.extend(
                 [make_child(first_parent, first_genes),
