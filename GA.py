@@ -117,28 +117,12 @@ class GA:
         return population
 
     def select(self, population: list[Chromosome]) -> list[Chromosome]:
-<<<<<<< HEAD
         matingPool = []
         for i in range(self.population_size): # mating pool is the same as the population size 
             selectedChrom = self.selection_method(population)
             matingPool.append(selectedChrom)
         return matingPool
-=======
-        fitness_scores = {
-            chromosome: chromosome.fitness
-            for chromosome in population
-        }
-        selected = []
-        for _ in range(self.population_size):
-            if self.selection_method is not None:
-                selected.append(self.selection_method(population, fitness_scores))
-            else:
-                selected.append(max(
-                    random.sample(population, min(3, len(population))),
-                    key=lambda chromosome: chromosome.fitness,
-                ))
-        return selected
->>>>>>> 4a5789d6aa0e62d3bc7bd0a1b4de719aeafcded6
+
 
     def crossover(self, parents: list[Chromosome]) -> list[Chromosome]:
         if self.crossover_method is None:
