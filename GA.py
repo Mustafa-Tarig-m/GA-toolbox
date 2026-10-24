@@ -107,10 +107,9 @@ class GA:
         ...
 
     def select(self, population: list[Chromosome]) -> list[Chromosome]:
-        fitnessScores = self.evaluate_fitness(population)
         matingPool = []
         for i in range(self.population_size): # mating pool is the same as the population size 
-            selectedChrom = self.selection_method(population,fitnessScores)
+            selectedChrom = self.selection_method(population)
             matingPool.append(selectedChrom)
         return matingPool
 
