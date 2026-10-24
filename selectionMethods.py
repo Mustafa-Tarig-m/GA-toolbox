@@ -10,8 +10,8 @@ def buildPropabilites(sortedPop)->dict:
         dictProp[indiv]= prop
     return dictProp
 
-def rankSelection(population,fitnessScores):
-    sortedPop = population.sort(reversed= True , key = lambda item:fitnessScores[item])
+def rankSelection(population):
+    sortedPop = population.sort(reversed= True , key = lambda item:item.fitness)
     propabilities =  buildPropabilites(sortedPop)
     r = random.random()
 
@@ -21,5 +21,9 @@ def rankSelection(population,fitnessScores):
         if cumFit >= r :
             return indi
     return population[-1]
-def TorunementSelection(population,fitnessScores, k = 2):
-    ...
+def TorunementSelection(population, k = 2):
+    participints = random.sample(range(0,len(population)), 2)
+    if(population[participints[0]]>= population[participints[1]]):
+        return population[participints[1]]
+    else: 
+        population[participints[0]]
