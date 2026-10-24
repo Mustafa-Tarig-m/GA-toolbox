@@ -9,6 +9,8 @@ import math
 import random
 import numpy as np
 
+from GA import GA
+from replacementMethods import elitist_replacement
 
 Point = tuple[float, float]
 
@@ -188,6 +190,94 @@ class CVRPProblem:
             genes.append(0)
         return CVRPChromosome(genes)
 
+    def crossover(
+        self,
+        parents: list[CVRPChromosome],
+        crossover_rate: float,
+    ) -> list[CVRPChromosome]:
+        offspring: list[CVRPChromosome] = []
+        for first, second in zip(parents[::2], parents[1::2]):
+            first_routes = self.routes_from_genes(first.genes)
+            second_routes = self.routes_from_genes(second.genes)
+            first_customers = [
+                city for route in first_routes for city in route if city != 0
+            ]
+            second_customers = [
+                city for route in second_routes for city in route if city != 0
+            ]
+
+            if random.random() >= crossover_rate:
+                children = [first, second]
+            elif len(first_customers) < 2:
+                children = [first, second]
+            else:
+                start, end = sorted(
+                    random.sample(range(len(first_customers)), 2)
+                )
+
+                def order_child(segment, fill):
+                    child = [None] * len(segment)
+                    child[start:end] = segment[start:end]
+                    remaining = [
+                        city for city in fill if city not in child[start:end]
+                    ]
+                    positions = list(range(end, len(child))) + list(range(start))
+                    for position, city in zip(positions, remaining):
+                        child[position] = city
+                    return child
+
+                child_customers = [
+                    order_child(first_customers, second_customers),
+                    order_child(second_customers, first_customers),
+                ]
+                route_lengths = [
+                    [len(route) - 2 for route in first_routes],
+                    [len(route) - 2 for route in second_routes],
+                ]
+                children = []
+                for customers, lengths, fallback in zip(
+                    child_customers, route_lengths, [first, second]
+                ):
+                    genes = [0]
+                    offset = 0
+                    for length in lengths:
+                        genes.extend(customers[offset:offset + length])
+                        genes.append(0)
+                        offset += length
+                    child = CVRPChromosome(genes)
+                    children.append(child if self.validate_chromosome(child) else fallback)
+
+            offspring.extend(children)
+        return offspring
+
+    def mutate(
+        self,
+        chromosome: CVRPChromosome,
+        mutation_rate: float,
+        _generation: int,
+        _generations: int,
+    ) -> CVRPChromosome:
+        if random.random() >= mutation_rate:
+            return chromosome
+        routes = [list(route) for route in self.routes_from_genes(chromosome.genes)]
+        customer_positions = [
+            (route_index, city_index)
+            for route_index, route in enumerate(routes)
+            for city_index in range(1, len(route) - 1)
+        ]
+        if len(customer_positions) < 2:
+            return chromosome
+        first_position, second_position = random.sample(customer_positions, 2)
+        first_route, first_index = first_position
+        second_route, second_index = second_position
+        routes[first_route][first_index], routes[second_route][second_index] = (
+            routes[second_route][second_index],
+            routes[first_route][first_index],
+        )
+        genes = [city for route in routes for city in route]
+        candidate = CVRPChromosome(genes)
+        return candidate if self.validate_chromosome(candidate) else chromosome
+
     def report(self, chromosome: CVRPChromosome) -> tuple[VehicleRoute, ...]:
         if not self.validate_chromosome(chromosome):
             raise ValueError("Cannot report an infeasible CVRP chromosome.")
@@ -285,8 +375,21 @@ def read_cvrp_instance() -> CVRPInstance:
 
 
 def main() -> None:
-    problem = CVRPProblem(read_cvrp_instance())#read the input from the user and create a CVRPProblem instance
-    chromosome = problem.random_chromosome()#generate a random feasible chromosome for the CVRP instance
+    problem = CVRPProblem(read_cvrp_instance())
+    genetic_algorithm = GA(
+        gene_type=CVRPChromosome,
+        fitness_function=problem.fitness,
+        feasibility_function=problem.feasibility,
+        population_size=100,
+        generations=200,
+        mutation_rate=0.15,
+        crossover_rate=0.9,
+        initializer=problem.random_chromosome,
+        crossover_method=problem.crossover,
+        mutation_method=problem.mutate,
+        replacement_method=elitist_replacement,
+    )
+    chromosome = genetic_algorithm.run()
     print_solution(problem, chromosome)
 
 
