@@ -1,10 +1,12 @@
-from collections.abc import Callable
+"""Generic genetic algorithm implementation and chromosome types."""
+
+from collections.abc import Callable, Mapping
 import random
 
 import numpy as np
 
 from mutationMethods import flip_bit, non_uniform_mutation, uniform_mutation
-from replacementMethods import elitist_replacement, generational_replacement
+from replacementMethods import elitist_replacement
 
 
 class Chromosome:
@@ -80,12 +82,32 @@ class GA:
         self.mutation_method = mutation_method
         self.replacement_method = replacement_method or elitist_replacement
         self.initializer = initializer
+        self._validate_settings()
 
-    def configure(self, **kwargs):
+    def _validate_settings(self) -> None:
+        if self.population_size < 1:
+            raise ValueError("population_size must be at least 1.")
+        if self.generations < 0:
+            raise ValueError("generations cannot be negative.")
+        for name, rate in (
+            ("mutation_rate", self.mutation_rate),
+            ("crossover_rate", self.crossover_rate),
+        ):
+            if not 0.0 <= rate <= 1.0:
+                raise ValueError(f"{name} must be between 0 and 1.")
+
+    def configure(self, **kwargs) -> "GA":
+        """Update algorithm settings and return this instance.
+
+        This is useful when an application wants to expose a small set of
+        algorithm options without rebuilding the problem object.
+        """
         for key, value in kwargs.items():
             if not hasattr(self, key):
                 raise AttributeError(f"GA class has no attribute '{key}'")
             setattr(self, key, value)
+        self._validate_settings()
+        return self
 
     def init_population(self) -> list[Chromosome]:
         if self.initializer is not None:
@@ -117,12 +139,22 @@ class GA:
         return population
 
     def select(self, population: list[Chromosome]) -> list[Chromosome]:
-        matingPool = []
-        for i in range(self.population_size): # mating pool is the same as the population size 
-            selectedChrom = self.selection_method(population)
-            matingPool.append(selectedChrom)
-        return matingPool
-
+        if self.selection_method is None:
+            return [
+                max(
+                    random.sample(population, min(2, len(population))),
+                    key=lambda chromosome: (
+                        chromosome.feasible is True,
+                        chromosome.fitness
+                        if chromosome.fitness is not None
+                        else float("-inf"),
+                    ),
+                )
+                for _ in range(self.population_size)
+            ]
+        return [
+            self.selection_method(population) for _ in range(self.population_size)
+        ]
 
     def crossover(self, parents: list[Chromosome]) -> list[Chromosome]:
         if self.crossover_method is None:
@@ -192,3 +224,32 @@ class GA:
                 best = candidate
 
         return best
+
+def run_ga(
+    *,
+    gene_type: type[Chromosome],
+    fitness_function: Callable,
+    feasibility_function: Callable,
+    initializer: Callable[[], Chromosome],
+    configuration: Mapping[str, object] | None = None,
+) -> Chromosome:
+    """Build and run a genetic algorithm from application configuration.
+
+    ``configuration`` may contain any keyword accepted by :class:`GA`.
+    Keeping construction here means applications only need to provide their
+    problem callbacks and user-facing options.
+    """
+    options = dict(configuration or {})
+    reserved = {"gene_type", "fitness_function", "feasibility_function", "initializer"}
+    duplicate_options = reserved.intersection(options)
+    if duplicate_options:
+        names = ", ".join(sorted(duplicate_options))
+        raise ValueError(f"Do not configure reserved GA arguments: {names}.")
+    algorithm = GA(
+        gene_type=gene_type,
+        fitness_function=fitness_function,
+        feasibility_function=feasibility_function,
+        initializer=initializer,
+        **options,
+    )
+    return algorithm.run()

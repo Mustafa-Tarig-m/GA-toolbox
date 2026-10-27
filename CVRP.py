@@ -9,8 +9,7 @@ import math
 import random
 import numpy as np
 
-from GA import GA
-from replacementMethods import elitist_replacement
+from GA import run_ga
 
 Point = tuple[float, float]
 
@@ -304,6 +303,15 @@ def print_solution(problem: CVRPProblem, chromosome: CVRPChromosome) -> None:
     total = problem.total_distance(chromosome)
     print(f"\nTotal distance: {total}")
 
+
+GA_OPTIONS = {
+    "population_size": 100,
+    "generations": 200,
+    "mutation_rate": 0.15,
+    "crossover_rate": 0.9,
+}
+
+
 def read_integer(prompt: str, minimum: int = 0) -> int:
     while True:
         try:
@@ -376,20 +384,17 @@ def read_cvrp_instance() -> CVRPInstance:
 
 def main() -> None:
     problem = CVRPProblem(read_cvrp_instance())
-    genetic_algorithm = GA(
+    chromosome = run_ga(
         gene_type=CVRPChromosome,
         fitness_function=problem.fitness,
         feasibility_function=problem.feasibility,
-        population_size=100,
-        generations=200,
-        mutation_rate=0.15,
-        crossover_rate=0.9,
         initializer=problem.random_chromosome,
-        crossover_method=problem.crossover,
-        mutation_method=problem.mutate,
-        replacement_method=elitist_replacement,
+        configuration={
+            **GA_OPTIONS,
+            "crossover_method": problem.crossover,
+            "mutation_method": problem.mutate,
+        },
     )
-    chromosome = genetic_algorithm.run()
     print_solution(problem, chromosome)
 
 
