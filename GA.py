@@ -225,6 +225,7 @@ class GA:
 
         return best
 
+#wrapper function thats used to run the GA class
 def run_ga(
     *,
     gene_type: type[Chromosome],
@@ -233,23 +234,19 @@ def run_ga(
     initializer: Callable[[], Chromosome],
     configuration: Mapping[str, object] | None = None,
 ) -> Chromosome:
-    """Build and run a genetic algorithm from application configuration.
 
-    ``configuration`` may contain any keyword accepted by :class:`GA`.
-    Keeping construction here means applications only need to provide their
-    problem callbacks and user-facing options.
-    """
-    options = dict(configuration or {})
-    reserved = {"gene_type", "fitness_function", "feasibility_function", "initializer"}
-    duplicate_options = reserved.intersection(options)
-    if duplicate_options:
-        names = ", ".join(sorted(duplicate_options))
-        raise ValueError(f"Do not configure reserved GA arguments: {names}.")
-    algorithm = GA(
+    options = configuration or {}
+
+    for name in ["gene_type", "fitness_function", "feasibility_function", "initializer"]:
+        if name in options:
+            raise ValueError(f"{name} cannot be set in configuration.")
+
+    ga = GA(
         gene_type=gene_type,
         fitness_function=fitness_function,
         feasibility_function=feasibility_function,
         initializer=initializer,
         **options,
     )
-    return algorithm.run()
+
+    return ga.run()

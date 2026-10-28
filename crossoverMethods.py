@@ -30,13 +30,6 @@ def multi_point_crossover(
     num_points: int = 2,
     crossover_rate: float = 1.0,
 ) -> list:
-    """Apply multi-point crossover to adjacent pairs of chromosomes.
-
-    two parents produce two children ... num_points  cut positions are
-    selected between genes.
-    
-    When crossover is skipped, copies of the two parents are returned.
-    """
     if not 0.0 <= crossover_rate <= 1.0:
         raise ValueError("crossover_rate must be between 0 and 1.")
     offspring = []
@@ -74,7 +67,6 @@ def multi_point_crossover(
 
 
 def order_crossover(parents: Sequence, crossover_rate: float = 1.0) -> list:
-    """Apply order crossover to adjacent pairs of permutation chromosomes."""
     if not 0.0 <= crossover_rate <= 1.0:
         raise ValueError("crossover_rate must be between 0 and 1.")
     offspring = []

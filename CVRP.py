@@ -16,7 +16,8 @@ Point = tuple[float, float]
 
 @dataclass
 class CVRPInstance:
-    """ CVRP
+    """ 
+    CVRP
 
     City ``0`` is the depot.
     Vehicles start and finish at the depot.
@@ -312,77 +313,51 @@ GA_OPTIONS = {
 }
 
 
-def read_integer(prompt: str, minimum: int = 0) -> int:
-    while True:
-        try:
-            value = int(input(prompt))
-        except ValueError:
-            print("Please enter a valid integer.")
-            continue
-        if value < minimum:
-            print(f"Please enter an integer greater than or equal to {minimum}.")
-            continue
-        return value
+def read_cvrp_instance() -> CVRPInstance:
+    vehicle_count = int(input("Number of vehicles: "))
+    vehicle_capacity = int(input("Vehicle capacity: "))
+    city_count = int(input("Number of cities: "))
 
+    demands = tuple(
+        int(value)
+        for value in input(
+            f"Enter demands for {city_count} cities, separated by spaces: "
+        ).split()
+    )
 
-def read_demands(city_count: int) -> tuple[int, ...]:
-    while True:
-        try:
-            demands = tuple(int(value) for value in input(
-                f"Enter demands for {city_count} cities, separated by spaces: "
-            ).split())
-        except ValueError:
-            print("Every demand must be an integer.")
-            continue
-        if len(demands) != city_count:
-            print(f"Please enter exactly {city_count} demands.")
-            continue
-        return demands
-
-
-def read_locations(city_count: int) -> tuple[Point, ...]:
     print("Enter one x y pair for each city, separated by spaces.")
     print("City 0 is the depot and must be entered as: 0 0")
-    while True:
-        locations: list[Point] = []
-        valid = True
-        for city in range(city_count):
-            try:
-                coordinates = tuple(float(value) for value in input(
-                    f"Location for city {city}: "
-                ).split())
-            except ValueError:
-                valid = False
-                break
-            if len(coordinates) != 2:
-                valid = False
-                break
-            locations.append((coordinates[0], coordinates[1]))
-        if valid and len(locations) == city_count:
-            return tuple(locations)
-        print("Each location must contain exactly two numeric coordinates.")
 
+    locations: list[Point] = []
+    for city in range(city_count):
+        x_value, y_value = map(
+            float,
+            input(f"Location for city {city}: ").split(),
+        )
+        locations.append((x_value, y_value))
 
-def read_cvrp_instance() -> CVRPInstance:
-    vehicle_count = read_integer("Number of vehicles: ", minimum=1)
-    vehicle_capacity = read_integer("Vehicle capacity: ", minimum=1)
-    city_count = read_integer("Number of cities: ", minimum=2)
-    while True:
-        demands = read_demands(city_count)
-        locations = read_locations(city_count)
-        try:
-            return CVRPInstance(
-                vehicle_count=vehicle_count,
-                vehicle_capacity=vehicle_capacity,
-                demands=demands,
-                locations=locations,
-            )
-        except ValueError as error:
-            print(f"Invalid CVRP instance: {error}")
-            print("Please enter the demands and locations again.")
+    return CVRPInstance(
+        vehicle_count=vehicle_count,
+        vehicle_capacity=vehicle_capacity,
+        demands=demands,
+        locations=tuple(locations),
+    )
 
 
 def main() -> None:
+    # instance = CVRPInstance(
+    #         vehicle_count=2,
+    #         vehicle_capacity=10,
+    #         demands=(0, 4, 3, 2, 5, 1),
+    #         locations=(
+    #             (0.0, 0.0),
+    #             (2.0, 2.0),
+    #             (4.0, 3.0),
+    #             (6.0, 2.0),
+    #             (5.0, 5.0),
+    #             (1.0, 6.0),
+    #         ),
+    #     )
     problem = CVRPProblem(read_cvrp_instance())
     chromosome = run_ga(
         gene_type=CVRPChromosome,
