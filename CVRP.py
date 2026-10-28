@@ -157,7 +157,6 @@ class CVRPProblem:
         )
 
     def fitness(self, chromosome: CVRPChromosome) -> float:
-    
         return -self.total_distance(chromosome)
 
     def feasibility(self, chromosome: CVRPChromosome) -> bool:

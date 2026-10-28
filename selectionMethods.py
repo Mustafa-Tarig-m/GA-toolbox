@@ -11,7 +11,7 @@ def buildPropabilites(sortedPop)->dict:
     return dictProp
 
 def rankSelection(population):
-    sortedPop = population.sort(reversed= True , key = lambda item:item.fitness)
+    sortedPop = population.sort(reversed= False , key = lambda item:item.fitness)
     propabilities =  buildPropabilites(sortedPop)
     r = random.random()
 
@@ -23,7 +23,7 @@ def rankSelection(population):
     return population[-1]
 def TorunementSelection(population, k = 2):
     participints = random.sample(range(0,len(population)), 2)
-    if(population[participints[0]]>= population[participints[1]]):
+    if(population[participints[0]]<= population[participints[1]]):
         return population[participints[1]]
     else: 
         population[participints[0]]

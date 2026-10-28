@@ -152,9 +152,7 @@ class GA:
                 )
                 for _ in range(self.population_size)
             ]
-        return [
-            self.selection_method(population) for _ in range(self.population_size)
-        ]
+        return [self.selection_method(population) for _ in range(self.population_size)]
 
     def crossover(self, parents: list[Chromosome]) -> list[Chromosome]:
         if self.crossover_method is None:
@@ -250,3 +248,6 @@ def run_ga(
     )
 
     return ga.run()
+
+
+
