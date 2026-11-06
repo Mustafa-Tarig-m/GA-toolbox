@@ -294,7 +294,13 @@ def print_solution(problem: CVRPProblem, chromosome: CVRPChromosome) -> None:
     routes = problem.report(chromosome)
 
     for i, route in enumerate(routes, 1):
-        cities = " -> ".join(str(city) for city in route.cities)
+        current_load = 0
+        route_with_loads = []
+        for city in route.cities:
+            if city != 0:
+                current_load += problem.instance.demands[city]
+            route_with_loads.append(f"{city}({current_load})")
+        cities = " -> ".join(route_with_loads)
 
         print(f"Vehicle {i}: {cities}")
         print(f"  Load: {route.load}")
